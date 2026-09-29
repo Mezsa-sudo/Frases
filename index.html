@@ -1,0 +1,172 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>frase_del_dia.sh</title>
+<style>
+:root{
+  box-sizing:border-box;
+  padding-top:env(safe-area-inset-top,0px);
+  padding-bottom:env(safe-area-inset-bottom,0px);
+  --bg:#07030d; --panel:#0e0718; --line:#32175f; --text:#efe4ff; --dim:#a68cd8;
+  --accent:#9d4dff; --glow:#c48bff; --ok:#ffd60a; --red:#ff2a4f;
+}
+*,*::before,*::after{box-sizing:inherit}
+html{height:100%;scroll-padding-top:env(safe-area-inset-top,0px)}
+body{
+  margin:0;min-height:100%;background:var(--bg);color:var(--text);
+  font-family:ui-monospace,"SF Mono","Cascadia Code",Consolas,Menlo,monospace;
+  display:flex;align-items:center;justify-content:center;padding:20px;
+  background-image:
+    linear-gradient(var(--line) 1px,transparent 1px),
+    linear-gradient(90deg,var(--line) 1px,transparent 1px);
+  background-size:44px 44px;background-position:-1px -1px;
+}
+body::before{content:"";position:fixed;inset:0;pointer-events:none;
+  background:radial-gradient(ellipse at center,transparent 30%,var(--bg) 85%)}
+.term{
+  position:relative;width:100%;max-width:720px;background:var(--panel);
+  border:1px solid var(--line);border-radius:10px;
+  box-shadow:0 0 0 1px rgba(157,77,255,.18),0 20px 70px rgba(120,40,255,.35);
+  overflow:hidden;
+}
+.bar{display:flex;align-items:center;gap:8px;padding:10px 14px;border-bottom:1px solid var(--line);font-size:.78rem;color:var(--dim)}
+.dot{width:11px;height:11px;border-radius:50%;background:var(--line)}
+.dot:nth-child(1){background:var(--red)}.dot:nth-child(2){background:var(--ok)}.dot:nth-child(3){background:var(--accent)}
+.bar span{margin-left:8px}
+.body{padding:22px 24px 26px;font-size:.92rem;line-height:1.6}
+.cmd{color:var(--dim);word-break:break-word}
+.cmd b{color:var(--ok);font-weight:600}
+.log{color:var(--dim);margin:2px 0}
+.log i{color:var(--ok);font-style:normal}
+.quote{
+  margin:26px 0 14px;font-size:clamp(1.35rem,4.6vw,2rem);line-height:1.35;
+  color:var(--glow);text-shadow:0 0 22px rgba(157,77,255,.6);min-height:5.4em;
+  max-width:34ch;
+}
+.cursor{display:inline-block;width:.55em;height:1.05em;background:var(--red);box-shadow:0 0 10px var(--red);vertical-align:-.15em;margin-left:3px;animation:blink 1.05s steps(1) infinite}
+@keyframes blink{50%{opacity:0}}
+.author{color:var(--ok);margin:0 0 22px;min-height:1.6em}
+.meta{display:flex;flex-wrap:wrap;gap:10px 22px;border-top:1px dashed var(--line);padding-top:14px;color:var(--dim);font-size:.8rem}
+.meta em{font-style:normal;color:var(--ok)}
+.bar{border-bottom:2px solid var(--accent)}
+.nav{display:flex;gap:10px;margin-top:16px;flex-wrap:wrap}
+button{
+  font:inherit;font-size:.82rem;color:var(--text);background:transparent;
+  border:1px solid var(--line);border-radius:6px;padding:8px 14px;cursor:pointer;min-height:40px;
+}
+button:hover{border-color:var(--red);color:var(--red)}
+button:focus-visible{outline:2px solid var(--ok);outline-offset:2px}
+@media (prefers-reduced-motion:reduce){.cursor{animation:none}}
+</style>
+</head>
+<body>
+<main class="term">
+  <div class="bar"><i class="dot"></i><i class="dot"></i><i class="dot"></i><span>filosofia@dia:~</span></div>
+  <div class="body">
+    <div class="log">[<i>ok</i>] cargando módulo de sabiduría...</div>
+    <div class="log">[<i>ok</i>] <span id="count"></span> frases indexadas</div>
+    <p class="cmd"><b>usuario@filosofia:~$</b> ./frase_del_dia --fecha <span id="date"></span></p>
+    <p class="quote" id="quote" aria-live="polite"></p>
+    <p class="author" id="author"></p>
+    <div class="meta">
+      <span>día del año: <em id="doy"></em></span>
+      <span>próxima frase en: <em id="timer">--:--:--</em></span>
+    </div>
+    <div class="nav">
+      <button id="prev" type="button">&lt; día anterior</button>
+      <button id="today" type="button">hoy</button>
+      <button id="next" type="button">día siguiente &gt;</button>
+    </div>
+  </div>
+</main>
+
+<script>
+const Q=[
+["Conócete a ti mismo.","Inscripción del templo de Delfos"],
+["Solo sé que no sé nada.","Sócrates"],
+["Pienso, luego existo.","René Descartes"],
+["La vida no examinada no merece ser vivida.","Sócrates"],
+["No es que tengamos poco tiempo, sino que perdemos mucho.","Séneca"],
+["Nadie se baña dos veces en el mismo río.","Heráclito"],
+["Somos lo que hacemos repetidamente. La excelencia no es un acto, sino un hábito.","Will Durant, sobre Aristóteles"],
+["El hombre está condenado a ser libre.","Jean-Paul Sartre"],
+["Quien tiene un porqué para vivir puede soportar casi cualquier cómo.","Friedrich Nietzsche"],
+["La felicidad depende de nosotros mismos.","Aristóteles"],
+["Quien ha comenzado ha hecho ya la mitad.","Horacio"],
+["No son las cosas las que nos perturban, sino la opinión que tenemos de ellas.","Epicteto"],
+["El límite de mi lenguaje es el límite de mi mundo.","Ludwig Wittgenstein"],
+["Yo soy yo y mi circunstancia.","José Ortega y Gasset"],
+["Lo único constante es el cambio.","Heráclito"],
+["Sapere aude: atrévete a pensar por ti mismo.","Immanuel Kant"],
+["El camino de mil millas comienza con un solo paso.","Lao Tsé"],
+["Vencerse a sí mismo es la mayor de las victorias.","Platón"],
+["Obra de modo que uses la humanidad siempre como fin y nunca solo como medio.","Immanuel Kant"],
+["Hay que imaginar a Sísifo feliz.","Albert Camus"],
+["La sabiduría comienza en la admiración.","Aristóteles"],
+["Lo importante no es vivir, sino vivir bien.","Sócrates"],
+["Ama tu destino.","Friedrich Nietzsche"],
+["No hay viento favorable para el que no sabe a qué puerto se dirige.","Séneca"],
+["Nada en exceso.","Inscripción del templo de Delfos"],
+["Tienes poder sobre tu mente, no sobre los acontecimientos externos. Comprenderlo te dará fuerza.","Marco Aurelio (atribuida)"],
+["El sabio no dice todo lo que piensa, pero piensa todo lo que dice.","Aristóteles (atribuida)"],
+["Lo que no es bueno para el enjambre, tampoco es bueno para la abeja.","Marco Aurelio"],
+["Si quieres ser feliz, no añadas a tus riquezas: quita a tus deseos.","Epicuro (atribuida)"],
+["La verdadera sabiduría está en reconocer la propia ignorancia.","Sócrates (atribuida)"],
+["Dime cómo empleas tu tiempo y te diré quién eres.","Séneca (adaptación)"]
+];
+const $=id=>document.getElementById(id);
+const DAY=864e5;
+let offset=0, tk=null;
+
+function utcDay(d){return Math.floor(Date.UTC(d.getFullYear(),d.getMonth(),d.getDate())/DAY)}
+function pad(n){return String(n).padStart(2,"0")}
+
+function render(){
+  const base=new Date(); base.setHours(12);
+  const d=new Date(base.getTime()+offset*DAY);
+  const idx=((utcDay(d)%Q.length)+Q.length)%Q.length;
+  const start=new Date(d.getFullYear(),0,0);
+  $("date").textContent=d.getFullYear()+"-"+pad(d.getMonth()+1)+"-"+pad(d.getDate());
+  $("doy").textContent=Math.floor((d-start)/DAY);
+  $("count").textContent=Q.length;
+  type(Q[idx][0],Q[idx][1]);
+}
+
+function type(text,author){
+  clearInterval(tk);
+  const el=$("quote"), au=$("author");
+  const reduce=matchMedia("(prefers-reduced-motion:reduce)").matches;
+  au.textContent="";
+  const cur='<span class="cursor" aria-hidden="true"></span>';
+  if(reduce){el.textContent="\u201C"+text+"\u201D";au.textContent="\u2014 "+author;return}
+  let i=0;
+  tk=setInterval(()=>{
+    i++;
+    el.innerHTML="";
+    el.append("\u201C"+text.slice(0,i));
+    el.insertAdjacentHTML("beforeend",cur);
+    if(i>=text.length){
+      clearInterval(tk);
+      el.textContent="\u201C"+text+"\u201D";
+      el.insertAdjacentHTML("beforeend",cur);
+      au.textContent="\u2014 "+author;
+    }
+  },28);
+}
+
+function tick(){
+  const n=new Date(), m=new Date(n.getFullYear(),n.getMonth(),n.getDate()+1);
+  const s=Math.max(0,Math.floor((m-n)/1000));
+  $("timer").textContent=pad(Math.floor(s/3600))+":"+pad(Math.floor(s%3600/60))+":"+pad(s%60);
+  if(s===0&&offset===0)render();
+}
+
+$("prev").onclick=()=>{offset--;render()};
+$("next").onclick=()=>{offset++;render()};
+$("today").onclick=()=>{offset=0;render()};
+render();tick();setInterval(tick,1000);
+</script>
+</body>
+</html>
